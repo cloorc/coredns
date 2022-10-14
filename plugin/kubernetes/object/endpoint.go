@@ -13,12 +13,13 @@ import (
 // Endpoints is a stripped down api.Endpoints with only the items we need for CoreDNS.
 type Endpoints struct {
 	// Don't add new fields to this struct without talking to the CoreDNS maintainers.
-	Version   string
-	Name      string
-	Namespace string
-	Index     string
-	IndexIP   []string
-	Subsets   []EndpointSubset
+	Version           string
+	Name              string
+	Namespace         string
+	Index             string
+	IndexIP           []string
+	Subsets           []EndpointSubset
+	CreationTimestamp int64
 
 	*Empty
 }
@@ -109,11 +110,12 @@ func EndpointSliceToEndpoints(obj meta.Object) (meta.Object, error) {
 		return nil, fmt.Errorf("unexpected object %v", obj)
 	}
 	e := &Endpoints{
-		Version:   ends.GetResourceVersion(),
-		Name:      ends.GetName(),
-		Namespace: ends.GetNamespace(),
-		Index:     EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
-		Subsets:   make([]EndpointSubset, 1),
+		Version:           ends.GetResourceVersion(),
+		Name:              ends.GetName(),
+		Namespace:         ends.GetNamespace(),
+		CreationTimestamp: ends.GetCreationTimestamp().Time.UnixMilli(),
+		Index:             EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
+		Subsets:           make([]EndpointSubset, 1),
 	}
 
 	if len(ends.Ports) == 0 {

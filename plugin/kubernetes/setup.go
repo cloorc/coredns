@@ -258,8 +258,22 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			if len(args) >= 2 {
 				k8s.fallbacks[args[0]] = args[1:]
 			}
+		case "readiness":
+			args := c.RemainingArgs()
+			if len(args) >= 1 {
+				delay, err := strconv.Atoi(args[0])
+				if err != nil {
+					log.Warning("Ignore invalid readiness: ", c.Val())
+					break
+				}
+				if 0 < delay {
+					k8s.readiness = int64(1000 * delay)
+				} else {
+					k8s.readiness = 0
+				}
+			}
 		default:
-			log.Error("unknown property: ", c.Val())
+			log.Warning("Ignore unknown property: ", c.Val())
 		}
 	}
 

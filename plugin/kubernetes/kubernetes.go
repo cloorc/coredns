@@ -52,6 +52,7 @@ type Kubernetes struct {
 	localIPs         []net.IP
 	autoPathSearch   []string // Local search path from /etc/resolv.conf. Needed for autopath.
 	fallbacks        map[string][]string
+	readiness        int64
 }
 
 // New returns a initialized Kubernetes. It default interfaceAddrFunc to return 127.0.0.1. All other
@@ -498,11 +499,11 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		idx := object.ServiceKey(r.service, r.namespace)
 		serviceList = k.APIConn.SvcIndex(idx)
 		fallbacks, exist := k.fallbacks[r.namespace]
-		if len(serviceList) <= 0 && exist {
+		if (len(serviceList) <= 0 || !k.HasReadyEndpoint(idx)) && exist {
 			for _, namespace := range fallbacks {
 				fallbackIdx := object.ServiceKey(r.service, namespace)
 				fallbackServiceList := k.APIConn.SvcIndex(fallbackIdx)
-				if len(fallbackServiceList) > 0 {
+				if k.HasReadyEndpoint(fallbackIdx) && len(fallbackServiceList) > 0 {
 					idx = fallbackIdx
 					serviceList = fallbackServiceList
 					fallback = namespace
@@ -605,7 +606,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 			for _, ip := range svc.ClusterIPs {
 				s := msg.Service{Host: ip, Port: int(p.Port), TTL: k.ttl}
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
-				log.Debug("[" + r.service + "." + r.namespace + "]add record: ", s)
+				log.Debug("["+r.service+"."+r.namespace+"]add record: ", s)
 				services = append(services, s)
 			}
 		}
@@ -618,6 +619,19 @@ func (k *Kubernetes) Serial(state request.Request) uint32 { return uint32(k.APIC
 
 // MinTTL returns the minimal TTL.
 func (k *Kubernetes) MinTTL(state request.Request) uint32 { return k.ttl }
+
+func (k *Kubernetes) HasReadyEndpoint(idx string) bool {
+	if 0 >= k.readiness {
+		return true
+	}
+	for _, ep := range k.APIConn.EpIndex(idx) {
+		// continue if new services might not ready
+		if (time.Now().UnixMilli() - ep.CreationTimestamp) > k.readiness {
+			return true
+		}
+	}
+	return false
+}
 
 // match checks if a and b are equal taking wildcards into account.
 func match(a, b string) bool {
