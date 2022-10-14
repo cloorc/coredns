@@ -504,7 +504,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 				serviceList = k.APIConn.SvcIndex(idx)
 				if len(serviceList) > 0 {
 					fallback = namespace
-					log.Warning("[" + r.service + "." + r.namespace + "]" + "Fallback to: " + fallback + " with: " + join(",", serviceList))
+					log.Warning("[" + r.service + "." + r.namespace + "]" + "fallback to: " + fallback + " with: " + join(",", serviceList))
 					break
 				}
 			}
@@ -514,9 +514,11 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 	zonePath := msg.Path(zone, coredns)
 	for _, svc := range serviceList {
-		// not in target namespace & not fallback
-		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name) && !strings.EqualFold(svc.Namespace, fallback)) {
-			continue
+		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
+			if !strings.EqualFold(svc.Namespace, fallback) {
+				// not in target namespace & not in fallback
+				continue
+			}
 		}
 
 		// If request namespace is a wildcard, filter results against Corefile namespace list.
@@ -601,7 +603,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 			for _, ip := range svc.ClusterIPs {
 				s := msg.Service{Host: ip, Port: int(p.Port), TTL: k.ttl}
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
-				log.Debug("Appending service", s)
+				log.Debug("Appending service: ", s)
 				services = append(services, s)
 			}
 		}
