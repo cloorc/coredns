@@ -1,2 +1,0 @@
-make VERSION=${VERSION:-1.8.7} DOCKER=${DOCKER:-coredns} -f Makefile.release clean release
-make VERSION=${VERSION:-1.8.7} DOCKER=${DOCKER:-coredns} -f Makefile.docker release docker-push
