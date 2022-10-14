@@ -111,6 +111,7 @@ func (k *Kubernetes) Services(ctx context.Context, state request.Request, exact 
 	case dns.TypeNS:
 		// We can only get here if the qname equals the zone, see ServeDNS in handler.go.
 		nss := k.nsAddrs(false, state.Zone)
+		log.Infof("[Tracing]Fetching addrs for %s", state.Zone)
 		var svcs []msg.Service
 		for _, ns := range nss {
 			if ns.Header().Rrtype == dns.TypeA {

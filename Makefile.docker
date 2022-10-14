@@ -29,7 +29,7 @@ DOCKER:=
 NAME:=coredns
 GITHUB:=https://github.com/coredns/coredns/releases/download
 # mips is not in LINUX_ARCH because it's not supported by docker manifest. Keep this list in sync with the one in Makefile.release
-LINUX_ARCH:=amd64 arm arm64 mips64le ppc64le s390x
+LINUX_ARCH:=amd64 #arm arm64 mips64le ppc64le s390x
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 DOCKER_IMAGE_LIST_VERSIONED:=$(shell echo $(LINUX_ARCH) | sed -e "s~[^ ]*~$(DOCKER_IMAGE_NAME)\-&:$(VERSION)~g")
 DOCKER_IMAGE_LIST_LATEST:=$(shell echo $(LINUX_ARCH) | sed -e "s~[^ ]*~$(DOCKER_IMAGE_NAME)\-&:latest~g")
@@ -54,7 +54,7 @@ endif
 	@# 3. Unpack the tgz from github into 'coredns' binary.
 	for arch in $(LINUX_ARCH); do \
 		mkdir build/docker/$${arch}; \
-		curl -L $(GITHUB)/v$(VERSION)/coredns_$(VERSION)_linux_$${arch}.tgz > build/docker/$${arch}/coredns.tgz && \
+		cp -vf release/coredns_$(VERSION)_linux_$${arch}.tgz build/docker/$${arch}/coredns.tgz && \
 			( cd build/docker/$${arch}; tar xf coredns.tgz && rm coredns.tgz ); \
 			cp Dockerfile build/docker/$${arch} ; \
 	done
@@ -66,6 +66,7 @@ ifeq ($(DOCKER),)
 else
 	docker version
 	for arch in $(LINUX_ARCH); do \
+	    docker rmi $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) 2>/dev/null; \
 	    docker build -t $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) build/docker/$${arch}  && \
 	    docker tag $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) $(DOCKER_IMAGE_NAME)-$${arch}:latest ;\
 	done
@@ -79,18 +80,18 @@ else
 	@# Pushes coredns/coredns-$arch:$version images
 	@# Creates manifest for multi-arch image
 	@# Pushes multi-arch image to coredns/coredns:$version
-	@echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_LOGIN) --password-stdin
+	#@echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_LOGIN) --password-stdin
 	@echo Pushing: $(VERSION) to $(DOCKER_IMAGE_NAME)
 	for arch in $(LINUX_ARCH); do \
-		docker push $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) ;\
+		#docker push $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) ;\
 		docker push $(DOCKER_IMAGE_NAME)-$${arch}:latest ;\
 	done
-	docker manifest create --amend $(DOCKER_IMAGE_NAME):$(VERSION) $(DOCKER_IMAGE_LIST_VERSIONED)
-	docker manifest create --amend $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_LIST_LATEST)
-	for arch in $(LINUX_ARCH); do \
-		docker manifest annotate --arch $${arch} $(DOCKER_IMAGE_NAME):$(VERSION) $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) ;\
-		docker manifest annotate --arch $${arch} $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME)-$${arch}:latest ;\
-	done
-	docker manifest push --purge $(DOCKER_IMAGE_NAME):$(VERSION)
-	docker manifest push --purge $(DOCKER_IMAGE_NAME):latest
+	# docker manifest create --amend $(DOCKER_IMAGE_NAME):$(VERSION) $(DOCKER_IMAGE_LIST_VERSIONED)
+	# docker manifest create --amend $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_LIST_LATEST)
+	# for arch in $(LINUX_ARCH); do \
+	# 	docker manifest annotate --arch $${arch} $(DOCKER_IMAGE_NAME):$(VERSION) $(DOCKER_IMAGE_NAME)-$${arch}:$(VERSION) ;\
+	# 	docker manifest annotate --arch $${arch} $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME)-$${arch}:latest ;\
+	# done
+	# docker manifest push --purge $(DOCKER_IMAGE_NAME):$(VERSION)
+	# docker manifest push --purge $(DOCKER_IMAGE_NAME):latest
 endif
