@@ -54,7 +54,7 @@ endif
 	@# 3. Unpack the tgz from github into 'coredns' binary.
 	for arch in $(LINUX_ARCH); do \
 		mkdir build/docker/$${arch}; \
-		cp -vf release/coredns_$(VERSION)_linux_$${arch}.tgz > build/docker/$${arch}/coredns.tgz && \
+		cp -vf release/coredns_$(VERSION)_linux_$${arch}.tgz build/docker/$${arch}/coredns.tgz && \
 			( cd build/docker/$${arch}; tar xf coredns.tgz && rm coredns.tgz ); \
 			cp Dockerfile build/docker/$${arch} ; \
 	done
