@@ -504,7 +504,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 				serviceList = k.APIConn.SvcIndex(idx)
 				if len(serviceList) > 0 {
 					fallback = namespace
-					log.Warning("Using fallback namespace", fallback, serviceList)
+					log.Warning("[" + r.service + "." + r.namespace + "]" + "Fallback to: " + fallback + " with: " + join(",", serviceList))
 					break
 				}
 			}
@@ -629,6 +629,19 @@ func match(a, b string) bool {
 // wildcard checks whether s contains a wildcard value defined as "*" or "any".
 func wildcard(s string) bool {
 	return s == "*" || s == "any"
+}
+
+func join(separator string, arguments []*object.Service) string {
+	builder := strings.Builder{}
+	sep := ""
+	for _, arg := range arguments {
+		builder.WriteString(sep)
+		builder.WriteString(arg.Name)
+		builder.WriteString(".")
+		builder.WriteString(arg.Namespace)
+		sep = separator
+	}
+	return builder.String()
 }
 
 const coredns = "c" // used as a fake key prefix in msg.Service

@@ -259,7 +259,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 				k8s.fallbacks[args[0]] = args[1:]
 			}
 		default:
-			log.Error("unknown property", c.Val())
+			log.Error("unknown property: ", c.Val())
 		}
 	}
 
