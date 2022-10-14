@@ -10,8 +10,6 @@ CGO_ENABLED?=0
 
 .PHONY: all
 all: coredns
-  make -f Makefile.release clean release
-  make -f Makefile.docker release docker-push
 
 .PHONY: coredns
 coredns: $(CHECKS)
