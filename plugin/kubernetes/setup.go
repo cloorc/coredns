@@ -253,8 +253,13 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 				overrides,
 			)
 			k8s.ClientConfig = config
+		case "fallback":
+			args := c.RemainingArgs()
+			if len(args) >= 2 {
+				k8s.fallbacks[args[0]] = args[1:]
+			}
 		default:
-			return nil, c.Errf("unknown property '%s'", c.Val())
+			log.Error("unknown property", c.Val())
 		}
 	}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
@@ -51,6 +52,7 @@ type Kubernetes struct {
 	primaryZoneIndex int
 	localIPs         []net.IP
 	autoPathSearch   []string // Local search path from /etc/resolv.conf. Needed for autopath.
+	fallbacks        map[string][]string
 }
 
 // New returns a initialized Kubernetes. It default interfaceAddrFunc to return 127.0.0.1. All other
@@ -61,6 +63,7 @@ func New(zones []string) *Kubernetes {
 	k.Namespaces = make(map[string]struct{})
 	k.podMode = podModeDisabled
 	k.ttl = defaultTTL
+	k.fallbacks = make(map[string][]string)
 
 	return k
 }
@@ -488,18 +491,32 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		serviceList       []*object.Service
 	)
 
+	fallback := r.namespace
 	if wildcard(r.service) || wildcard(r.namespace) {
 		serviceList = k.APIConn.ServiceList()
 		endpointsListFunc = func() []*object.Endpoints { return k.APIConn.EndpointsList() }
 	} else {
 		idx := object.ServiceKey(r.service, r.namespace)
 		serviceList = k.APIConn.SvcIndex(idx)
+		fallbacks, exist := k.fallbacks[r.namespace]
+		if len(serviceList) <= 0 && exist {
+			for _, namespace := range fallbacks {
+				idx = object.ServiceKey(r.service, namespace)
+				serviceList = k.APIConn.SvcIndex(idx)
+				if len(serviceList) > 0 {
+					fallback = namespace
+					log.Warning("Using fallback namespace", fallback, serviceList)
+					break
+				}
+			}
+		}
 		endpointsListFunc = func() []*object.Endpoints { return k.APIConn.EpIndex(idx) }
 	}
 
 	zonePath := msg.Path(zone, coredns)
 	for _, svc := range serviceList {
-		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
+		// not in target namespace & not fallback
+		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name) && !strings.EqualFold(svc.Namespace, fallback)) {
 			continue
 		}
 
@@ -585,6 +602,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 			for _, ip := range svc.ClusterIPs {
 				s := msg.Service{Host: ip, Port: int(p.Port), TTL: k.ttl}
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
+				log.Debug("Appending service", s)
 				services = append(services, s)
 			}
 		}
