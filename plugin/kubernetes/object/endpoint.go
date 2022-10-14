@@ -56,11 +56,12 @@ func ToEndpoints(obj meta.Object) (meta.Object, error) {
 		return nil, fmt.Errorf("unexpected object %v", obj)
 	}
 	e := &Endpoints{
-		Version:   end.GetResourceVersion(),
-		Name:      end.GetName(),
-		Namespace: end.GetNamespace(),
-		Index:     EndpointsKey(end.GetName(), end.GetNamespace()),
-		Subsets:   make([]EndpointSubset, len(end.Subsets)),
+		Version:           end.GetResourceVersion(),
+		Name:              end.GetName(),
+		Namespace:         end.GetNamespace(),
+		CreationTimestamp: end.GetCreationTimestamp().Time.UnixMilli(),
+		Index:             EndpointsKey(end.GetName(), end.GetNamespace()),
+		Subsets:           make([]EndpointSubset, len(end.Subsets)),
 	}
 	for i, eps := range end.Subsets {
 		sub := EndpointSubset{
@@ -162,11 +163,12 @@ func EndpointSliceV1beta1ToEndpoints(obj meta.Object) (meta.Object, error) {
 		return nil, fmt.Errorf("unexpected object %v", obj)
 	}
 	e := &Endpoints{
-		Version:   ends.GetResourceVersion(),
-		Name:      ends.GetName(),
-		Namespace: ends.GetNamespace(),
-		Index:     EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
-		Subsets:   make([]EndpointSubset, 1),
+		Version:           ends.GetResourceVersion(),
+		Name:              ends.GetName(),
+		Namespace:         ends.GetNamespace(),
+		CreationTimestamp: ends.GetCreationTimestamp().Time.UnixMilli(),
+		Index:             EndpointsKey(ends.Labels[discovery.LabelServiceName], ends.GetNamespace()),
+		Subsets:           make([]EndpointSubset, 1),
 	}
 
 	if len(ends.Ports) == 0 {
