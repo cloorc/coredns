@@ -500,9 +500,11 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		fallbacks, exist := k.fallbacks[r.namespace]
 		if len(serviceList) <= 0 && exist {
 			for _, namespace := range fallbacks {
-				idx = object.ServiceKey(r.service, namespace)
-				serviceList = k.APIConn.SvcIndex(idx)
-				if len(serviceList) > 0 {
+				fallbackIdx := object.ServiceKey(r.service, namespace)
+				fallbackServiceList := k.APIConn.SvcIndex(fallbackIdx)
+				if len(fallbackServiceList) > 0 {
+					idx = fallbackIdx
+					serviceList = fallbackServiceList
 					fallback = namespace
 					log.Warning("[" + r.service + "." + r.namespace + "]" + "fallback to: " + fallback + " with: " + join(",", serviceList))
 					break
