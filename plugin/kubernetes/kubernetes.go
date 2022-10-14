@@ -605,7 +605,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 			for _, ip := range svc.ClusterIPs {
 				s := msg.Service{Host: ip, Port: int(p.Port), TTL: k.ttl}
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
-				log.Debug("Appending service: ", s)
+				log.Debug("[" + r.service + "." + r.namespace + "]Appending service: ", s)
 				services = append(services, s)
 			}
 		}
